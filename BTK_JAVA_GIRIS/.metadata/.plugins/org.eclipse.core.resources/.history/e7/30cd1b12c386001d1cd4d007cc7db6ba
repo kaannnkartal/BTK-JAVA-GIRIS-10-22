@@ -1,0 +1,155 @@
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+public class CFGConverter {
+    // A production in the grammar is represented as a pair of strings, where the
+    // left-hand side (LHS) is the non-terminal symbol and the right-hand side (RHS)
+    // is a string of symbols, which can be a combination of terminals and non-terminals
+    private static class Production {
+        String lhs;
+        String rhs;
+
+        Production(String lhs, String rhs) {
+            this.lhs = lhs;
+            this.rhs = rhs;
+        }
+    }
+
+    // The grammar is represented as a set of productions
+    private Set<Production> productions;
+
+    // The start symbol of the grammar
+    private String startSymbol;
+
+    // A map that stores the nullable non-terminals (those that can generate the empty string)
+    private Map<String, Boolean> nullables;
+
+    // A map that stores the unit productions (those of the form X -> Y)
+    private Map<String, String> units;
+
+    // A set that stores the useless non-terminals (those that cannot reach any terminal symbols)
+    private Set<String> useless;
+
+    public CFGConverter(Set<Production> productions, String startSymbol) {
+        this.productions = productions;
+        this.startSymbol = startSymbol;
+        this.nullables = new HashMap<>();
+        this.units = new HashMap<>();
+        this.useless = new HashSet<>();
+    }
+
+    // Returns the set of nullable non-terminals
+    public Set<String> getNullables() {
+        return nullables.keySet();
+    }
+
+    // Returns the set of useless non-terminals
+    public Set<String> getUseless() {
+        return useless;
+    }
+
+    // Eliminates null, unit, and useless productions from the grammar
+    public void eliminateNullUnitUseless() {
+        // Compute the nullable, unit, and useless non-terminals
+        computeNullables();
+        computeUnits();
+        computeUseless();
+
+        // Remove the null, unit, and useless productions from the grammar
+        removeNullProductions();
+        removeUnitProductions();
+        removeUselessProductions();
+    }
+
+    // Computes the nullable non-terminals (those that can generate the empty string)
+    private void computeNullables() {
+        // Initialize all non-terminals as non-nullable
+        for (Production p : productions) {
+            nullables.put(p.lhs, false);
+        }
+
+        // Iteratively mark the nullable non-terminals until no more can be found
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (Production p : productions) {
+                // If the RHS of the production is the empty string, mark the LHS as nullable
+                if (p.rhs.equals("")) {
+                    if (!nullables.get(p.lhs)) {
+                        null
+                        // Computes the unit productions (those of the form X -> Y)
+                        private void computeUnits() {
+                            // Initialize all non-terminals as having no unit production
+                            for (Production p : productions) {
+                                units.put(p.lhs, null);
+                            }
+
+                            // Iteratively find the unit productions until no more can be found
+                            boolean changed = true;
+                            while (changed) {
+                                changed = false;
+                                for (Production p : productions) {
+                                    // If the RHS of the production is a single non-terminal, store it as a unit production
+                                    if (p.rhs.length() == 1 && p.rhs.charAt(0) >= 'A' && p.rhs.charAt(0) <= 'Z') {
+                                        String rhs = p.rhs;
+                                        if (units.get(p.lhs) == null) {
+                                            units.put(p.lhs, rhs);
+                                            changed = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Computes the useless non-terminals (those that cannot reach any terminal symbols)
+                        private void computeUseless() {
+                            // Initialize all non-terminals as useful
+                            for (Production p : productions) {
+                                useless.remove(p.lhs);
+                            }
+
+                            // Iteratively mark the useless non-terminals until no more can be found
+                            boolean changed = true;
+                            while (changed) {
+                                changed = false;
+                                for (Production p : productions) {
+                                    // If the LHS of the production is useless, mark the RHS symbols as useless
+                                    if (useless.contains(p.lhs)) {
+                                        for (int i = 0; i < p.rhs.length(); i++) {
+                                            char c = p.rhs.charAt(i);
+                                            if (c >= 'A' && c <= 'Z' && !useless.contains(String.valueOf(c))) {
+                                                useless.add(String.valueOf(c));
+                                                changed = true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Removes null productions (those of the form X -> ε) from the grammar
+                        private void removeNullProductions() {
+                            // Remove null productions that do not have any non-nullable symbols in their RHS
+                            Set<Production> toRemove = new HashSet<>();
+                            for (Production p : productions) {
+                                if (p.rhs.equals("")) {
+                                    toRemove.add(p);
+                                } else {
+                                    boolean nullable = true;
+                                    for (int i = 0; i < p.rhs.length(); i++) {
+                                        char c = p.rhs.charAt(i);
+                                        if (c >= 'A' && c <= 'Z' && !nullables.get(String.valueOf(c))) {
+                                            nullable = false;
+                                            break;
+                                        }
+                                    }
+                                    if (nullable) {
+                                        toRemove.add(p);
+                                    }
+                                }
+                            }
+                            productions.removeAll(toRemove);
+
+                            //

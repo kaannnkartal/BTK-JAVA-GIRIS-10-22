@@ -1,0 +1,19 @@
+package threadingDemo;
+
+public class KronometreThread implements Runnable{
+
+	private Thread t;
+	private String threadName;
+	
+	public KronometreThread(String threadName) {
+		this.threadName = threadName;
+		
+		System.out.println("Olusturuluyor :  " + threadName);
+	}
+	@Override
+	public void run() {
+		System.out.println("Calistiriliyor : " + threadName);
+		
+	}
+
+}

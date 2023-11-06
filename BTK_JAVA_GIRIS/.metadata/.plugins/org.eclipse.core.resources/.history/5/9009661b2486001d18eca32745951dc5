@@ -1,0 +1,94 @@
+import java.util.HashSet;
+import java.util.Set;
+
+public class Main {
+  public static void main(String[] args) {
+    // Create a CFG
+    Set<String> nonTerminals = new HashSet<>();
+    nonTerminals.add("S");
+    nonTerminals.add("A");
+    nonTerminals.add("B");
+    Set<String> terminals = new HashSet<>();
+    terminals.add("a");
+    terminals.add("b");
+    CFG cfg = new CFG(nonTerminals, terminals);
+
+    // Add rules to the CFG
+    cfg.addRule(new Rule("S", List.of("A", "B")));
+    cfg.addRule(new Rule("A", List.of("a", "A")));
+    cfg.addRule(new Rule("A", List.of("b")));
+    cfg.addRule(new Rule("B", List.of("b", "B")));
+    cfg.addRule(new Rule("B", List.of("a")));
+
+    // Convert the CFG to normal Chomsky form
+    CFGConverter converter = new CFGConverter(cfg);
+    CFG normalChomskyCFG = converter.convertToNormalChomskyForm();
+
+    // Print the converted CFG
+    for (Rule rule : normalChomskyCFG.getRules()) {
+      System.out.println(rule);
+    }
+  }
+}
+
+// This is the CFG class used in the code above
+class CFG {
+  // The set of non-terminals
+  private Set<String> nonTerminals;
+
+  // The set of terminals
+  private Set<String> terminals;
+
+  // The set of rules
+  private Set<Rule> rules;
+
+  public CFG(Set<String> nonTerminals, Set<String> terminals) {
+    this.nonTerminals = nonTerminals;
+    this.terminals = terminals;
+    this.rules = new HashSet<>();
+  }
+
+  public Set<String> getNonTerminals() {
+    return nonTerminals;
+  }
+
+  public Set<String> getTerminals() {
+    return terminals;
+  }
+
+  public Set<Rule> getRules() {
+    return rules;
+  }
+
+  public void addRule(Rule rule) {
+    rules.add(rule);
+  }
+}
+
+// This is the Rule class used in the code above
+class Rule {
+  // The left-hand side of the rule (a non-terminal)
+  private String lhs;
+
+  // The right-hand side of the rule (a list of symbols)
+  private List<String> rhs;
+
+  public Rule(String lhs, List<String> rhs) {
+    this.lhs = lhs;
+    this.rhs = rhs;
+  }
+
+  public String getLhs() {
+    return lhs;
+  }
+
+  public List<String> getRhs() {
+    return rhs;
+  }
+
+  @Override
+  public String toString() {
+    return lhs + " -> " + String.join(" ", rhs);
+    
+  }
+}

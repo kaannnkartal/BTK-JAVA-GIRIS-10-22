@@ -1,0 +1,59 @@
+import java.util.ArrayList;
+import java.util.List;
+
+public class CFGConverter {
+  // The CFG to be converted
+  private CFG cfg;
+
+  // The converted CFG in normal Chomsky form
+  private CFG normalChomskyCFG;
+
+  public CFGConverter(CFG cfg) {
+    this.cfg = cfg;
+  }
+
+  public CFG convertToNormalChomskyForm() {
+    // Create a new CFG to store the converted rules
+    normalChomskyCFG = new CFG(cfg.getNonTerminals(), cfg.getTerminals());
+
+    // Add new non-terminals for each rule with more than two symbols on the right-hand side
+    List<String> newNonTerminals = new ArrayList<>();
+    for (Rule rule : cfg.getRules()) {
+      List<String> rhs = rule.getRhs();
+      if (rhs.size() > 2) {
+        // Create new non-terminals for each symbol on the right-hand side, starting from the third symbol
+        for (int i = 2; i < rhs.size(); i++) {
+          String newNonTerminal = createNewNonTerminal();
+          newNonTerminals.add(newNonTerminal);
+          normalChomskyCFG.addRule(new Rule(newNonTerminal, rhs.subList(i - 1, i + 1)));
+        }
+
+        // Replace the original rule with a new rule using the first two symbols on the right-hand side
+        // and the last new non-terminal created
+        normalChomskyCFG.addRule(new Rule(rule.getLhs(), rhs.subList(0, 2)));
+        normalChomskyCFG.addRule(new Rule(rule.getLhs(), List.of(newNonTerminals.get(newNonTerminals.size() - 1))));
+      } else {
+        normalChomskyCFG.addRule(rule);
+      }
+    }
+
+    // Add new rules for each rule with a terminal symbol on the right-hand side
+    for (Rule rule : cfg.getRules()) {
+      List<String> rhs = rule.getRhs();
+      if (rhs.size() == 1 && cfg.getTerminals().contains(rhs.get(0))) {
+        String newNonTerminal = createNewNonTerminal();
+        newNonTerminals.add(newNonTerminal);
+        normalChomskyCFG.addRule(new Rule(newNonTerminal, rhs));
+        normalChomskyCFG.addRule(new Rule(rule.getLhs(), List.of(newNonTerminal)));
+      }
+    }
+
+    return normalChomskyCFG;
+  }
+
+  // This method generates a new non-terminal by appending a number to the string "N"
+  private String createNewNonTerminal() {
+    int i = normalChomskyCFG.getNonTerminals().size() + 1;
+    return "N" + i;
+  }
+}

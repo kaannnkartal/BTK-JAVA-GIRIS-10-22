@@ -1,0 +1,273 @@
+import java.io.File;  // Import the File class
+import java.io.FileNotFoundException;  // Import this class to handle errors
+import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Scanner; // Import the Scanner class to read text files
+
+public class Main {
+    public static void print(ArrayList<String> variables, Dictionary states){
+        for (int i = 0; i < variables.size(); i++) {
+            System.out.println(variables.get(i) + " -> " + states.get(variables.get(i)));
+        }
+    }
+
+    public static String[] splitRule(String state){
+        state = state.replace("|", ",");
+        String rules[] = state.split(",");
+        return rules;
+    }
+
+    public static ArrayList<String> checkEpsilon(ArrayList<String> variables, Dictionary states){
+        int size = variables.size();
+        ArrayList<String> temp = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            if (states.get(variables.get(i)).toString().contains("€")){
+                temp.add(variables.get(i));
+            }
+        }
+        return temp;
+    }
+    public static int countChar(String str, char c) {
+        int count = 0;
+        for (int i = 0; i < str.length(); i++) {
+            if (str.charAt(i) == c) {
+                count++;
+            }
+        }
+        return count;
+    }
+    public static int countCharInArray(String[] strs, char c) {
+        int count = 0;
+        for (String str : strs) {
+            count += countChar(str, c);
+        }
+        return count;
+    }
+    // this function eliminates the epsilon states and gets all new rules then returns these
+    public static String eliminateEpsilon(char epsilonState, String state, ArrayList<String> rules, String variable) {
+        String tempState = "";
+        ArrayList<String> temp = new ArrayList<>();
+        temp.add(state);
+
+        for (int i = 0; i < temp.size(); i++) {
+
+            for (int j = 0; j < temp.get(i).length(); j++){
+
+                if (temp.get(i).toString().charAt(j) == epsilonState){
+                    String part1 = temp.get(i).toString().substring(0, j);
+                    String part2 = temp.get(i).toString().substring(j+1, temp.get(i).length());
+                    tempState = part1 + part2;
+
+                    if (!temp.contains(tempState) && !rules.contains(tempState) && !variable.equals(tempState)) {
+                        temp.add(tempState);
+                    }
+
+                }
+            }
+        }
+        String toAdd = "";
+        String finalState = temp.get(0);
+        
+        if(temp.size() == 1) {  // SONDAKİ S NİN EKLENMESİ İÇİN
+        	toAdd = tempState;
+        }
+        else {
+        	 for (int i = 1; i < temp.size(); i++){
+        		 
+        		 if (i == temp.size()) {
+        			 toAdd += temp.get(i);
+        		 }
+        		 else
+        			 toAdd += temp.get(i) + "|" ;    // 1A A1 1 NIN AYRI YAZILMASI İCİN
+
+                 if (temp.get(i).isEmpty())
+                     toAdd = "€";
+
+                 
+             }
+        }
+       
+        
+        if (toAdd.length() !=0 ) {  
+        	finalState += ("|T" + toAdd  );
+        }
+        
+        return finalState;
+    }
+
+    public static void main(String[] args) {
+
+        ArrayList<String> rules = new ArrayList<>();
+        ArrayList<String> variables = new ArrayList<>();
+        Dictionary states = new Hashtable();
+
+        try {
+            File myObj = new File("cfg.txt");
+            Scanner reader = new Scanner(myObj);
+            while (reader.hasNextLine()) {
+                String data = reader.nextLine();
+                String[] temp;
+
+                if (data.startsWith("E"))
+                    continue;
+
+                rules.add(data);
+                temp = data.split("-");
+                states.put(temp[0], temp[1]);
+                variables.add(temp[0]);
+            }
+            reader.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+
+        System.out.println("CFG Form");
+        print(variables, states);
+
+        System.out.println("\nChecking start state...");
+
+        int size = variables.size();
+        boolean startChange = false;
+        // to add new start state due to old S is being on right side of some variable
+        for (int i = 0; i < size; i++) {
+            if (states.get(variables.get(i)).toString().contains("S") && !startChange){
+                variables.add(0, "S1");
+                states.put("S1", "S");
+                startChange = true;
+            }
+        }
+
+        if (startChange)
+            print(variables, states);
+        else
+            System.out.println("No start state found on right sides.");
+
+        System.out.println("\nEliminate epsilon...");
+        // to get variables that has epsilon on right side
+        ArrayList<String> epsilons = checkEpsilon(variables, states);
+        ArrayList<String> safeEpsilons = epsilons;
+        int count = 0;
+
+        if (!epsilons.isEmpty()){
+
+            for (int i = 0; i < epsilons.size() ; i++){ // loop for variables that has epsilon on right side
+                
+                
+                System.out.println("CHECK : " + epsilons.size());
+                for (int j = 0; j < variables.size(); j++) {  // loop for variables
+
+                    String tempRules[] = splitRule(states.get(variables.get(j)).toString());
+                    ArrayList<String> tempo = new ArrayList<>();
+
+                    for (int a = 0; a < tempRules.length; a++)
+                        tempo.add(tempRules[a]);
+
+                    if (variables.get(j) == epsilons.get(i)){
+                        tempo.remove("€");
+                    }
+
+                    int sizeof = tempo.size();
+
+                    String stateRules[] = new String[sizeof];
+
+                    for (int a = 0; a < sizeof; a++)
+                        stateRules[a] = tempo.get(a);
+
+                    String deneme = "";
+                    String finalS = "";
+                    
+                    int countEp = countCharInArray(stateRules, epsilons.get(i).charAt(0));
+                    
+                    for (int k = 0; k < tempo.size(); k++){ // split edilen rules için dönen for
+                        finalS += eliminateEpsilon(epsilons.get(i).charAt(0), tempo.get(k), tempo, variables.get(j)) + "|";
+                    }
+
+                    
+                    /*for (int k = 0; k < tempo.size(); k++){ // split edilen rules için dönen for
+                    	finalS += eliminateEpsilon(epsilons.get(i).charAt(0), tempo.get(k), tempo, variables.get(j)) + "|";
+                        
+                        
+                        String [] eleminated = splitRule(finalS);
+                        
+                        for(int z =0 ; z<eleminated.length;z++) {
+                        	if(!(tempo.contains(eleminated[z]))) {
+                        		tempo.add(eleminated[z]);
+                        	}
+                        }
+                                           
+                    }*/
+                    finalS = finalS.substring(0,finalS.length() - 1);
+
+                    states.remove(variables.get(j));
+                    states.put(variables.get(j), finalS);
+
+                }
+                // to store all epsilon states
+                for (int f = 0; f < epsilons.size(); f++){
+                    if (!safeEpsilons.contains(epsilons.get(f)))
+                        safeEpsilons.add(epsilons.get(f));
+                }
+                epsilons = checkEpsilon(variables, states);
+                System.out.println("CHECK2 : " + epsilons.size());
+                i = i-1;
+            }
+        }
+
+        print(variables, states);
+
+        System.out.println("\nEliminate unit production...");
+
+        for (int i = 0; i < variables.size(); i++){  // loop for variables
+
+            String tempRules[] = splitRule(states.get(variables.get(i)).toString());
+            ArrayList<String> tempo = new ArrayList<>();
+
+            for (int a = 0; a < tempRules.length; a++)
+                tempo.add(tempRules[a]);
+
+            for (int j = 0; j < tempo.size(); j++) {
+                String rule = tempo.get(j);
+                if (rule.length() == 1 && variables.contains(rule)){
+                    
+                    ///////// split the unit variable's rules and check requirements, add adequate ones ///////
+
+                    String[] varsOfUnit = splitRule(states.get(rule).toString());
+
+                    for (int k = 0; k < varsOfUnit.length; k++){
+                        if (!tempo.contains(varsOfUnit[k]))
+                            tempo.add(varsOfUnit[k]);
+
+                    }
+                    tempo.remove(rule);
+                    j--;
+                    /////////
+                }
+            }
+            // Cleaning the epsilons that has removed from previous step
+            if (safeEpsilons.contains(variables.get(i)))
+                tempo.remove("€");
+
+            ///// unite the new rules, add to main dictionary, remove old one ///////
+
+            String finalS = "";
+
+            for (int k = 0; k < tempo.size(); k++){
+                finalS += tempo.get(k) + "|";
+            }
+            finalS = finalS.substring(0,finalS.length() - 1);
+
+            states.remove(variables.get(i));
+            states.put(variables.get(i), finalS);
+
+            ////////
+        }
+        print(variables, states);
+
+        System.out.println("\nEliminate terminals...");
+
+        System.out.println("\nBreak variable strings longer than 2...");
+
+    }
+}

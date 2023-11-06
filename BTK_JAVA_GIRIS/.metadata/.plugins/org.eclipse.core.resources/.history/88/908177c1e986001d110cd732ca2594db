@@ -1,0 +1,419 @@
+import java.io.File;  // Import the File class
+import java.io.FileNotFoundException;  // Import this class to handle errors
+import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Scanner; // Import the Scanner class to read text files
+
+public class Main {
+    public static void print(ArrayList<String> variables, Dictionary states){
+        for (int i = 0; i < variables.size(); i++) {
+            System.out.println(variables.get(i) + " -> " + states.get(variables.get(i)));
+        }
+    }
+
+    public static String[] splitRule(String state){
+        state = state.replace("|", ",");
+        String rules[] = state.split(",");
+        return rules;
+    }
+
+    public static String getLetter (ArrayList<String> variables){
+        String[] letters = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "R", "S", "T", "U", "V", "Y", "Z", "W", "X"};
+        String letter = "";
+        for (int i = 0; i < letters.length; i++){
+            if (!variables.contains(letters[i])){
+                letter = letters[i];
+                break;
+            }
+        }
+        return letter;
+    }
+
+    public static ArrayList<String> checkEpsilon(ArrayList<String> variables, Dictionary states){
+        int size = variables.size();
+        ArrayList<String> temp = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            if (states.get(variables.get(i)).toString().contains("€")){
+                temp.add(variables.get(i));
+            }
+        }
+        return temp;
+    }
+
+    // this function eliminates the epsilon states and gets all new rules then returns these
+    public static String eliminateEpsilon(char epsilonState, String state, ArrayList<String> rules, String variable) {
+        String tempState = "";
+        ArrayList<String> temp = new ArrayList<>();
+        temp.add(state);
+
+        for (int i = 0; i < temp.size(); i++) {
+
+            for (int j = 0; j < temp.get(i).length(); j++){
+
+                if (temp.get(i).toString().charAt(j) == epsilonState){
+                    String part1 = temp.get(i).toString().substring(0, j);
+                    String part2 = temp.get(i).toString().substring(j+1, temp.get(i).length());
+                    tempState = part1 + part2;
+
+                    if (!temp.contains(tempState) && !rules.contains(tempState) && !variable.equals(tempState)) {
+                        temp.add(tempState);
+                    }
+
+                }
+            }
+        }
+        String toAdd = "";
+        String finalState = temp.get(0);
+        for (int i = 1; i < temp.size(); i++){
+            toAdd = temp.get(i);
+
+            if (temp.get(i).isEmpty())
+                toAdd = "€";
+
+            finalState += ( "|" + toAdd);
+        }
+        return finalState;
+    }
+
+    public static void main(String[] args) {
+
+        ArrayList<String> rules = new ArrayList<>();
+        ArrayList<String> variables = new ArrayList<>();
+        ArrayList<String> alphabet = new ArrayList<>();
+        Dictionary states = new Hashtable();
+
+        try {
+            File myObj = new File("cfg.txt");
+            Scanner reader = new Scanner(myObj);
+            while (reader.hasNextLine()) {
+                String data = reader.nextLine();
+                String[] temp;
+
+                if (data.startsWith("E")){ // storing alphabet letters to check situations later
+                    String preAlph = data.substring(2, data.length());
+                    String[] tempAlph = preAlph.split(",");
+
+                    for (int i = 0; i < tempAlph.length; i++)
+                        alphabet.add(tempAlph[i]);
+                    continue;
+                }
+
+                rules.add(data);
+                temp = data.split("-");
+                states.put(temp[0], temp[1]);
+                variables.add(temp[0]);
+            }
+            reader.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+
+        System.out.println("CFG Form");
+        print(variables, states);
+
+        System.out.println("\nChecking start state...");
+
+        int size = variables.size();
+        boolean startChange = false;
+        // to add new start state due to old S is being on right side of some variable
+        for (int i = 0; i < size; i++) {
+            if (states.get(variables.get(i)).toString().contains("S") && !startChange){
+                variables.add(0, "S1");
+                states.put("S1", "S");
+                startChange = true;
+            }
+        }
+
+        if (startChange)
+            print(variables, states);
+        else
+            System.out.println("No start state found on right sides.");
+
+        System.out.println("\nEliminate epsilon...");
+        // to get variables that has epsilon on right side
+        ArrayList<String> epsilons = checkEpsilon(variables, states);
+        ArrayList<String> safeEpsilons = epsilons;
+        int count = 0;
+
+        if (!epsilons.isEmpty()){
+
+            for (int i = 0; i < epsilons.size() ; i++){ // loop for variables that has epsilon on right side
+                epsilons = checkEpsilon(variables, states);
+                i = 0;
+
+                for (int j = 0; j < variables.size(); j++) {  // loop for variables
+
+                    String tempRules[] = splitRule(states.get(variables.get(j)).toString());
+                    ArrayList<String> tempo = new ArrayList<>();
+
+                    for (int a = 0; a < tempRules.length; a++)
+                        tempo.add(tempRules[a]);
+
+                    if (variables.get(j) == epsilons.get(i)){
+                        tempo.remove("€");
+                    }
+
+                    int sizeof = tempo.size();
+
+                    String stateRules[] = new String[sizeof];
+
+                    for (int a = 0; a < sizeof; a++)
+                        stateRules[a] = tempo.get(a);
+
+                    String finalS = "";
+
+                    for (int k = 0; k < stateRules.length; k++){ // split edilen rules için dönen for
+                        finalS += eliminateEpsilon(epsilons.get(i).charAt(0), stateRules[k], tempo, variables.get(j)) + "|";
+                    }
+                    finalS = finalS.substring(0,finalS.length() - 1);
+
+                    states.remove(variables.get(j));
+                    states.put(variables.get(j), finalS);
+                }
+                // to store all epsilon states
+                for (int f = 0; f < epsilons.size(); f++){
+                    if (!safeEpsilons.contains(epsilons.get(f)))
+                        safeEpsilons.add(epsilons.get(f));
+                }
+            }
+        }
+
+        print(variables, states);
+
+        System.out.println("\nEliminate unit production...");
+
+        for (int i = 0; i < variables.size(); i++){  // loop for variables
+
+            String tempRules[] = splitRule(states.get(variables.get(i)).toString());
+            ArrayList<String> tempo = new ArrayList<>();
+
+            for (int a = 0; a < tempRules.length; a++)
+                tempo.add(tempRules[a]);
+
+            for (int j = 0; j < tempo.size(); j++) {
+                String rule = tempo.get(j);
+                if (rule.length() == 1 && variables.contains(rule)){
+
+                    ///////// split the unit variable's rules and check requirements, add adequate ones ///////
+
+                    String[] varsOfUnit = splitRule(states.get(rule).toString());
+
+                    for (int k = 0; k < varsOfUnit.length; k++){
+                        if (!tempo.contains(varsOfUnit[k]))
+                            tempo.add(varsOfUnit[k]);
+
+                    }
+                    tempo.remove(rule);
+                    j--;
+                    /////////
+                }
+            }
+            // Cleaning the epsilons that has removed from previous step
+            if (safeEpsilons.contains(variables.get(i)))
+                tempo.remove("€");
+
+            ///// unite the new rules, add to main dictionary, remove old one ///////
+
+            String finalS = "";
+
+            for (int k = 0; k < tempo.size(); k++){
+                finalS += tempo.get(k) + "|";
+            }
+            finalS = finalS.substring(0,finalS.length() - 1);
+
+            states.remove(variables.get(i));
+            states.put(variables.get(i), finalS);
+
+            ////////
+        }
+        print(variables, states);
+
+        System.out.println("\nEliminate terminals...");
+
+        Dictionary terminals = new Hashtable();
+
+        for (int i = 0; i < variables.size(); i++){// loop for variables
+
+            String tempRules[] = splitRule(states.get(variables.get(i)).toString());
+            ArrayList<String> tempo = new ArrayList<>();
+
+            // bu kısım fonksiyon yapılacak
+            for (int a = 0; a < tempRules.length; a++)
+                tempo.add(tempRules[a]);
+
+            for (int j = 0; j < tempo.size(); j++) {  //loop for variable's all rules
+
+                String rule = tempo.get(j);
+                //loop for to control if there is a terminal in rules for every letter of alphabet
+                for (int m = 0; m < alphabet.size(); m++) {
+
+                    String terminal = alphabet.get(m);
+
+                    if (rule.length() > 1 && rule.contains(terminal)){
+                        String newProd = "";
+                        if (terminals.get(terminal) == null){
+                            newProd = getLetter(variables);
+                        }  // to decide with what will be changed the terminal
+                        else
+                            newProd = terminals.get(terminal).toString();
+
+                        terminals.put(terminal, newProd); // to store assignments of terminals
+
+                        if (states.get(newProd) == null)
+                            states.put(newProd, terminal);
+
+                        if (!variables.contains(newProd))
+                            variables.add(newProd);
+
+                        String newRule = rule.replace(terminal, terminals.get(terminal).toString());
+                        //System.out.println(newRule);
+                        tempo.add(m, newRule);
+                        tempo.remove(rule);
+
+                    }
+
+
+                }
+
+
+            }
+
+            ///// unite the new rules, add to main dictionary, remove old one ///////
+
+            String finalS = "";
+
+            for (int k = 0; k < tempo.size(); k++){
+                finalS += tempo.get(k) + "|";
+            }
+            finalS = finalS.substring(0,finalS.length() - 1);
+
+            states.remove(variables.get(i));
+            states.put(variables.get(i), finalS);
+
+            ////////
+
+        }
+
+        print(variables, states);
+
+        System.out.println("\nBreak variable strings longer than 2...");
+
+        Dictionary breaks = new Hashtable();
+        //breaks.put("Z", "FD");
+
+        ArrayList<String> broke = new ArrayList<>();
+        //broke.add("Z");
+
+        for (int i = 0; i < variables.size(); i++){
+
+        String tempRules[] = splitRule(states.get(variables.get(i)).toString());
+        ArrayList<String> tempo = new ArrayList<>();
+
+        // bu kısım fonksiyon yapılacak
+        for (int a = 0; a < tempRules.length; a++)
+            tempo.add(tempRules[a]);
+
+        String prod = "";
+        String newProd = "";
+        String newRule = "";
+        boolean needBreake = true;
+
+           // loop for variables
+
+            for (int j = 0; j < tempo.size(); j++) {  //loop for variable's all rules
+                String rule = tempo.get(j);
+
+                if (rule.length() > 2){
+
+                    for (int m = 0; m < alphabet.size(); m++) {
+                        if (rule.contains(alphabet.get(m)))
+                            needBreake = false;
+                    }
+
+                    if (needBreake){
+
+                        if (breaks.isEmpty()){
+
+                            prod = rule.substring(0,2);
+                            newProd = getLetter(variables);
+
+                            if (!broke.contains(newProd))
+                                broke.add(newProd);
+
+                            breaks.put(newProd, prod);
+                            newRule = rule.replace(breaks.get(broke.get(0)).toString(), broke.get(0));
+                            tempo.add(newRule);
+                            tempo.remove(rule);
+
+                        }
+
+                        else {
+
+                            for (int l = 0; l < breaks.size(); l++) {
+                                if (rule.contains(breaks.get(broke.get(l)).toString())){
+                                    newRule = rule.replace(breaks.get(broke.get(l)).toString(), broke.get(l));
+                                    //System.out.println("This will be broke " + newRule);
+                                    tempo.add(newRule);
+                                    tempo.remove(rule);
+                                }
+                                else {
+                                    prod = rule.substring(0,2);
+                                    newProd = getLetter(variables);
+
+                                    if (!broke.contains(newProd))
+                                        broke.add(newProd);
+
+                                    breaks.put(newProd, prod);
+
+                                    newRule = rule.replace(breaks.get(broke.get(0)).toString(), broke.get(0));
+                                    //System.out.println("This will be broke " + newRule);
+                                    tempo.add(newRule);
+                                    tempo.remove(rule);
+
+                                    }
+                                }
+
+
+
+                        }
+
+                    }
+
+
+
+                }
+
+
+
+                if (states.get(newProd) == null)
+                    states.put(newProd, newRule);
+
+                if (!variables.contains(newProd))
+                    variables.add(newProd);
+                //System.out.println(tempo);
+                //print(variables, states);
+
+
+
+            }
+
+            ///// unite the new rules, add to main dictionary, remove old one ///////
+
+            String finalS = "";
+
+            for (int k = 0; k < tempo.size(); k++){
+                finalS += tempo.get(k) + "|";
+            }
+            finalS = finalS.substring(0,finalS.length() - 1);
+
+            states.remove(variables.get(i));
+            states.put(variables.get(i), finalS);
+
+            ////////
+        }
+        variables.remove("");
+        print(variables, states);
+    }
+}

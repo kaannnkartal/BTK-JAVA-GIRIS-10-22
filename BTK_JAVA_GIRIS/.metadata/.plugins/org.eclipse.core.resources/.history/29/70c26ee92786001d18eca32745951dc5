@@ -1,0 +1,81 @@
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+public class CFGConverter {
+    // A production in the grammar is represented as a pair of strings, where the
+    // left-hand side (LHS) is the non-terminal symbol and the right-hand side (RHS)
+    // is a string of symbols, which can be a combination of terminals and non-terminals
+    private static class Production {
+        String lhs;
+        String rhs;
+
+        Production(String lhs, String rhs) {
+            this.lhs = lhs;
+            this.rhs = rhs;
+        }
+    }
+
+    // The grammar is represented as a set of productions
+    private Set<Production> productions;
+
+    // The start symbol of the grammar
+    private String startSymbol;
+
+    // A map that stores the nullable non-terminals (those that can generate the empty string)
+    private Map<String, Boolean> nullables;
+
+    // A map that stores the unit productions (those of the form X -> Y)
+    private Map<String, String> units;
+
+    // A set that stores the useless non-terminals (those that cannot reach any terminal symbols)
+    private Set<String> useless;
+
+    public CFGConverter(Set<Production> productions, String startSymbol) {
+        this.productions = productions;
+        this.startSymbol = startSymbol;
+        this.nullables = new HashMap<>();
+        this.units = new HashMap<>();
+        this.useless = new HashSet<>();
+    }
+
+    // Returns the set of nullable non-terminals
+    public Set<String> getNullables() {
+        return nullables.keySet();
+    }
+
+    // Returns the set of useless non-terminals
+    public Set<String> getUseless() {
+        return useless;
+    }
+
+    // Eliminates null, unit, and useless productions from the grammar
+    public void eliminateNullUnitUseless() {
+        // Compute the nullable, unit, and useless non-terminals
+        computeNullables();
+        computeUnits();
+        computeUseless();
+
+        // Remove the null, unit, and useless productions from the grammar
+        removeNullProductions();
+        removeUnitProductions();
+        removeUselessProductions();
+    }
+
+    // Computes the nullable non-terminals (those that can generate the empty string)
+    private void computeNullables() {
+        // Initialize all non-terminals as non-nullable
+        for (Production p : productions) {
+            nullables.put(p.lhs, false);
+        }
+
+        // Iteratively mark the nullable non-terminals until no more can be found
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (Production p : productions) {
+                // If the RHS of the production is the empty string, mark the LHS as nullable
+                if (p.rhs.equals("")) {
+                    if (!nullables.get(p.lhs)) {
+                        null

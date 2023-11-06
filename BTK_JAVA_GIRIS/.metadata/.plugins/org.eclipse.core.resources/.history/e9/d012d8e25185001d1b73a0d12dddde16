@@ -1,0 +1,66 @@
+import java.util.ArrayList;
+import java.util.List;
+
+public class CFGConverter {
+    public static void main(String[] args) {
+        // CFG'yi tanımlayın
+        String[] rules = {
+            "S -> A a",
+            "A -> B b",
+            "B -> C c",
+            "C -> D d",
+            "D -> E e",
+            "E -> F f",
+            "F -> G g",
+            "G -> H h",
+            "H -> I i",
+            "I -> J j",
+            "J -> K k",
+            "K -> L l",
+            "L -> M m"
+        };
+
+        // CFG'yi Chomsky Normal Form'a dönüştürün
+        List<String> newRules = convertToChomskyNormalForm(rules);
+
+        // Yeni CFG'yi yazdırın
+        for (String rule : newRules) {
+            System.out.println(rule);
+        }
+    }
+
+    public static List<String> convertToChomskyNormalForm(String[] rules) {
+        List<String> newRules = new ArrayList<>();
+
+        int counter = 1; // Yeni no-terminal simgelerini saymak için kullanılacak sayaç
+
+        // Her üreteçi tarayın
+        for (String rule : rules) {
+            String[] symbols = rule.split(" ");
+
+            // Eğer üreteç bir terminal simge ile başlıyorsa, o zaman bu üreteçi değiştirmeyin
+            if (Character.isLowerCase(symbols[1].charAt(0))) {
+                newRules.add(rule);
+                continue;
+            }
+
+            // Eğer üreteç iki terminal simge içeriyorsa, bu üreteçi değiştirin ve iki terminal simgeyi iki ayrı üreteçe bölün
+            if (Character.isLowerCase(symbols[2].charAt(0))) {
+                String newSymbol1 = symbols[0] + counter;
+                String newSymbol2 = symbols[0] + (counter + 1);
+                newRules.add(symbols[0] + " -> " + symbols[1] + " " + newSymbol1);
+                newRules.add(newSymbol1 + " -> " + symbols[2]);
+                counter += 2;
+                continue;
+            }
+
+            // Eğer üreteç bir no-terminal simge ile başlıyorsa ve iki no-terminal simge içeriyorsa, bu üreteci değiştirin ve iki no-terminal simgeyi iki ayrı üreteçe bölün
+            String newSymbol1 = symbols[0] + counter;
+            String newSymbol2 = symbols[0] + (counter + 1);
+            newRules.add(symbols[0] + " -> " + symbols[1] + " " + newSymbol1);
+		newRules.add(newSymbol1 + " -> " + symbols[2]);
+		counter += 2;
+}
+    return newRules;
+ }
+}

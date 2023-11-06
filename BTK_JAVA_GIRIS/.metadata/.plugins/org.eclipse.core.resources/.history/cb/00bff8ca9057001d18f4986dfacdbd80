@@ -1,0 +1,13 @@
+package threadingDemo;
+
+public class KronometreThread implements Runnable{
+
+	private Thread t;
+	private String threadName;
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		
+	}
+
+}
